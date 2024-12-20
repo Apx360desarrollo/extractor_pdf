@@ -28,10 +28,13 @@ def extract():
     Endpoint para procesar un archivo PDF enviado como POST.
     """
     if 'file' not in request.files:
+        app.logger.info('Archivo no encontrado en la solicitud.')
         return jsonify({'error': 'No se encontró ningún archivo PDF.'}), 400
 
     file = request.files['file']
     if file.filename == '':
+        app.logger.info(f"Archivo recibido: {file.filename}")
+        file.seek(0)  # Restablecer el puntero después de leerlo para procesar el archivo
         return jsonify({'error': 'No se seleccionó ningún archivo PDF.'}), 400
 
     # Guardar el archivo temporalmente en la carpeta /tmp
