@@ -43,8 +43,6 @@ def extract():
     # Procesar el archivo y extraer datos
     app.logger.info(f"Archivo recibido: {file_path}")
     result = extract_pdf_data(file_path)
-    os.remove(file_path)  # Eliminar el archivo temporal
-    return jsonify(result)
     
     # Eliminar el archivo temporal para evitar acumular basura
     os.remove(file_path)
@@ -52,6 +50,4 @@ def extract():
     # Devolver el resultado en formato JSON
     return jsonify(result)
 
-if __name__ == '__main__':
-    # Configurar el servidor para escuchar en todas las interfaces (localhost y red local)
-    app.run(host='0.0.0.0', port=5000)
+
