@@ -7,17 +7,15 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Inicializar la aplicación Flask
 app = Flask(__name__)
 
-# Configurar CORS para permitir solo solicitudes desde dominios específicos
-CORS(app, resources={r"/*": {"origins": "https://tusitio.com"}})
+# Configurar CORS para permitir solicitudes desde bbygoodies.com
+CORS(app, resources={r"/*": {"origins": "https://bbygoodies.com"}})
 
 @app.route('/extract', methods=['POST'])
 def extract():
     logger.info("Solicitud recibida en el endpoint /extract")
 
-    # Verificar si el archivo fue enviado
     if 'file' not in request.files:
         logger.warning("No se encontró ningún archivo en la solicitud")
         return jsonify({"error": "No file uploaded"}), 400
@@ -27,18 +25,15 @@ def extract():
         logger.warning("El nombre del archivo está vacío")
         return jsonify({"error": "Empty file name"}), 400
 
-    # Validar que el archivo sea un PDF
     if not file.filename.lower().endswith('.pdf'):
         logger.warning("El archivo no es un PDF válido")
         return jsonify({"error": "Invalid file type. Only PDFs are allowed"}), 400
 
     try:
-        # Preprocesar el archivo PDF
         logger.info("Procesando el archivo PDF")
         text = preprocess_text(file)
-        logger.debug(f"Texto extraído: {text[:100]}...")  # Solo muestra los primeros 100 caracteres
+        logger.debug(f"Texto extraído: {text[:100]}...")
 
-        # Extraer datos estructurados
         data = extract_data_with_spacy(text)
         logger.info("Datos extraídos correctamente")
         return jsonify(data), 200
@@ -46,6 +41,4 @@ def extract():
         logger.error(f"Ocurrió un error durante el procesamiento: {e}")
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    # No se debe usar en producción, usa Gunicorn
-    app.run(debug=False)
+# Nota: No hay bloque app.run() en producción
