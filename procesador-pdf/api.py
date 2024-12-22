@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 
 # Inicializar la aplicación Flask
 app = Flask(__name__)
-CORS(app)
+
+# Configurar CORS para permitir solo solicitudes desde dominios específicos
+CORS(app, resources={r"/*": {"origins": "https://tusitio.com"}})
 
 @app.route('/extract', methods=['POST'])
 def extract():
