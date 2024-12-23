@@ -2,9 +2,15 @@ import pdfplumber
 import spacy
 import json
 import re
+import logging
 
 # Cargar modelo spaCy
 nlp = spacy.blank("es")
+
+# Configuración del logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 
 def preprocess_text(file_path):
     """
@@ -123,25 +129,33 @@ def extract_data_spacy(text):
 
     # Extraer datos básicos
     extracted_data["RFC"] = safe_search(r"RFC:\s*([A-Z0-9]+)", text)
+    
     if is_moral:
+        # Solo para personas morales
         extracted_data["DenominacionRazonSocial"] = safe_search(r"Denominación/RazónSocial:\s*(.*?)\s*RégimenCapital:", text)
         extracted_data["RegimenCapital"] = safe_search(r"RégimenCapital:\s*(.*?)\s*NombreComercial:", text)
     else:
+        # Solo para personas físicas
         extracted_data["CURP"] = safe_search(r"CURP:\s*([A-Z0-9]+)", text)
         nombre = safe_search(r"Nombre\(s\):\s*(.*?)\s*PrimerApellido:", text)
         primer_apellido = safe_search(r"PrimerApellido:\s*(.*?)\s*SegundoApellido:", text)
         segundo_apellido = safe_search(r"SegundoApellido:\s*(.*?)\s*Fechainiciodeoperaciones:", text)
+        
         if nombre and primer_apellido and segundo_apellido:
             extracted_data["Nombre"] = f"{nombre} {primer_apellido} {segundo_apellido}"
+        else:
+            logger.info("Faltan datos para el Nombre Completo en persona física.")
+            extracted_data["Nombre"] = None
 
+    # Fecha y estado
     extracted_data["FechaInicioOperaciones"] = safe_search(r"Fechainiciodeoperaciones:\s*(.*?)\s*Estatusenelpadrón:", text)
     extracted_data["EstatusPadron"] = safe_search(r"Estatusenelpadrón:\s*(.*?)\s*Fechadeúltimocambiodeestado:", text)
     extracted_data["FechaUltimoCambioEstado"] = safe_search(r"Fechadeúltimocambiodeestado:\s*(.*?)\s*(NombreComercial|Datos del domicilio registrado)", text)
 
-    # Extraer dirección
+    # Dirección
     extracted_data["Direccion"] = extract_direccion(text, is_moral)
 
-    # Extraer Régimen Fiscal
+    # Régimen Fiscal
     regimen_fiscal_match = re.search(r"Regímenes:.*?Régimen\s*(.*?)\s*Obligaciones:", text, re.DOTALL)
     if regimen_fiscal_match:
         regimen_fiscal = regimen_fiscal_match.group(1)
