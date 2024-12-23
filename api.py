@@ -1,17 +1,24 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
+import traceback
 from extract_pdf import preprocess_text, extract_data_spacy
+import os
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configuración de logging
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Crear la aplicación Flask
 app = Flask(__name__)
 
-# Configurar CORS para permitir solicitudes desde dominios específicos
-CORS(app, resources={r"/*": {"origins": "https://bbygoodies.com"}})
+# Configurar límite de tamaño para archivos (5 MB)
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
+
+# Configurar CORS
+origins = os.getenv('CORS_ORIGINS', 'https://bbygoodies.com').split(',')
+CORS(app, resources={r"/*": {"origins": origins}})
 
 @app.route('/extract', methods=['POST'])
 def extract():
@@ -31,7 +38,7 @@ def extract():
         return jsonify({"error": "Empty file name"}), 400
 
     # Validar que el archivo sea un PDF
-    if not file.filename.lower().endswith('.pdf'):
+    if not file.filename.lower().endswith('.pdf') or file.content_type != 'application/pdf':
         logger.warning("El archivo no es un PDF válido.")
         return jsonify({"error": "Invalid file type. Only PDFs are allowed"}), 400
 
@@ -56,7 +63,7 @@ def extract():
         return jsonify({"error": str(ve)}), 400
 
     except Exception as e:
-        logger.error(f"Ocurrió un error inesperado: {e}")
+        logger.error(f"Ocurrió un error inesperado: {e}\n{traceback.format_exc()}")
         return jsonify({"error": "Ocurrió un error inesperado. Intenta nuevamente más tarde."}), 500
 
-# Nota: No incluir app.run() aquí ya que Railway maneja la ejecución mediante Gunicorn.
+# Nota: No incluir app.run() ya que Railway maneja la ejecución con Gunicorn.
