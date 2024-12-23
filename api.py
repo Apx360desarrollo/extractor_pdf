@@ -17,8 +17,11 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
 
 # Configurar CORS
-origins = os.getenv('CORS_ORIGINS', 'https://bbygoodies.com').split(',')
-CORS(app, resources={r"/*": {"origins": origins}})
+CORS(app, resources={r"/*": {
+    "origins": ["https://bbygoodies.com", "https://example.com"],
+    "methods": ["GET", "POST"],
+    "allow_headers": ["Content-Type"]
+}})
 
 @app.route('/extract', methods=['POST'])
 def extract():
