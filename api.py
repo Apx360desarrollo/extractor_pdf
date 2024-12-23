@@ -1,11 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
-import pdfplumber
-from extractor_fisicas import extract_data as extract_data_fisicas
-from extractor_morales import extract_data as extract_data_morales
+from extract_pdf import preprocess_text, extract_data_spacy
 
-# Configuración de logging
+# Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -14,30 +12,6 @@ app = Flask(__name__)
 
 # Configurar CORS para permitir solicitudes desde dominios específicos
 CORS(app, resources={r"/*": {"origins": "https://bbygoodies.com"}})
-
-def preprocess_text(file):
-    """
-    Extrae todo el texto del PDF y lo preprocesa.
-    """
-    try:
-        with pdfplumber.open(file) as pdf:
-            full_text = ""
-            for page in pdf.pages:
-                full_text += page.extract_text() + "\n"
-        logger.info("Texto extraído correctamente del PDF.")
-        return full_text.strip()
-    except Exception as e:
-        logger.error(f"Error al extraer texto del PDF: {e}")
-        raise ValueError("No se pudo procesar el archivo PDF.")
-
-def determine_type(text):
-    """
-    Determina si el PDF es de una persona física o moral basado en el contenido del texto.
-    """
-    # Revisar patrones más robustos para identificar persona moral
-    tipo = "moral" if "Denominación/RazónSocial:" in text else "fisica"
-    logger.debug(f"Tipo detectado: {tipo}")
-    return tipo
 
 @app.route('/extract', methods=['POST'])
 def extract():
@@ -71,16 +45,8 @@ def extract():
 
         logger.debug(f"Texto extraído: {text[:500]}...")  # Mostrar un fragmento del texto extraído
 
-        # Determinar si es persona física o moral
-        tipo = determine_type(text)
-
-        # Llamar al extractor correspondiente
-        if tipo == "moral":
-            logger.info("Procesando como persona moral.")
-            data = extract_data_morales(text)
-        else:
-            logger.info("Procesando como persona física.")
-            data = extract_data_fisicas(text)
+        # Extraer datos usando el extractor
+        data = extract_data_spacy(text)
 
         logger.info("Datos extraídos correctamente.")
         return jsonify(data), 200
